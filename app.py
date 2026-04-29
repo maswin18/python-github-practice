@@ -29,3 +29,12 @@ Products = [
 def add_product(product: Product):
     Products.append(product.dict())
     return {"message": "Product added", "data": product}
+
+@app.delete("/products/{product_id}")
+def delete_product(product_id: int):
+    for p in Products:
+        if p["id"] == product_id:
+            Products.remove(p)
+            return {"message": "Product deleted"}
+    return {"message": "Product not found"}
+
