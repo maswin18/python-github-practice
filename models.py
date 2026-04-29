@@ -17,5 +17,20 @@ class Product(BaseModel):
     qty: int
 
     class Config:
-        orm_mode = True
-        
+        from_attributes = True
+
+from sqlalchemy import Boolean
+
+# User table
+class UserDB(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    password = Column(String)
+    is_active = Column(Boolean, default=True)
+
+# User schema
+class User(BaseModel):
+    username: str
+    password: str
