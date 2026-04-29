@@ -1,40 +1,54 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
+from sqlalchemy.orm import Session
+from database import SessionLocal, engine
+from models import Base, ProductDB, Product
+
+# Create tables
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 @app.get("/")
 def home():
-    return {"message": "Hello Maswin, this is your first API!"}
+    return {"message": "API with DB running"}
 
 @app.get("/products")
-def get_products():
-    return [
-        {"id": 1, "name": "Shoes", "qty": 100},
-        {"id": 2, "name": "T-Shirt", "qty": 50}
-    ]
-
-from pydantic import BaseModel
-
-class Product(BaseModel):
-    id: int
-    name: str
-    qty: int
-
-Products = [
-    {"id": 1, "name": "Shoes", "qty": 100},
-    {"id": 2, "name": "T-Shirt", "qty": 50}
-]
+def get_products(db: Session = Depends(get_db)):
+    return db.query(ProductDB).all()
 
 @app.post("/products")
-def add_product(product: Product):
-    Products.append(product.dict())
-    return {"message": "Product added", "data": product}
+def add_products(product: Product, db:Session = Depends(get_db)):
+    db_product = ProductDB(**product.dict())
+    db.add(db_product)
+    db.commit()
+    db.refresh(db_product)
+    return db_product
+
+@app.put("/products/{product_id}")
+def update_product(product_id: int, updated: Product, db:Session = Depends(get_db)):
+    p = db.query(ProductDB).filter(ProductDB.id == product_id).first()
+    if not p:
+        return {"message": "Product not found"}
+    
+    p.name = updated.name
+    p.qty = updated.qty
+    db.commit()
+    return p
 
 @app.delete("/products/{product_id}")
-def delete_product(product_id: int):
-    for p in Products:
-        if p["id"] == product_id:
-            Products.remove(p)
-            return {"message": "Product deleted"}
-    return {"message": "Product not found"}
-
+def delete_product(product_id: int, db: Session = Depends(get_db)):
+    p = db.query(ProductDB).filter(ProductDB.id == product_id).first()
+    if not p:
+        return {"message": "Product not found"}
+    
+    db.delete(p)
+    db.commit()
+    return {"message": "Deleted"}
