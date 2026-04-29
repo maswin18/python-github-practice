@@ -6,7 +6,9 @@ from jose import jwt
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 
-SECRET_KEY = "mysecretkey"
+import os
+
+SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret")
 ALGORITHM = "HS256"
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
