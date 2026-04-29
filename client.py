@@ -1,8 +1,19 @@
 import requests
 
-url = "http://127.0.0.1:8000/products"
+# Step 1: Login
+login_url = "http://127.0.0.1:8000/login"
 
-token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtYXN3aW5fZml4IiwiZXhwIjoxNzc3NTAyNjM0fQ.A4fA9JWoBqc03grpMyg8Uc2kbS1ZtO2e33snfQQ8ssw"
+login_data = {
+    "username": "maswin_fix",
+    "password": "123456"
+}
+
+login_response = requests.post(login_url, json=login_data)
+
+token = login_response.json()["access_token"]
+
+# Step 2: call protected API
+url = "http://127.0.0.1:8000/products"
 
 headers = {
     "Authorization": f"Bearer {token}"
