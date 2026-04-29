@@ -1,3 +1,7 @@
+## Project Demo (Local API)
+- Base URL: http://127.0.0.1:8000
+- Swagger Docs: http://127.0.0.1:8000/docs
+
 # Inventory API (FastAPI + JWT Auth)
 
 ## Overview
