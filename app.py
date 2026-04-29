@@ -4,9 +4,18 @@ from database import SessionLocal, engine
 from models import Base, ProductDB, Product, UserDB, User
 from jose import jwt
 from datetime import datetime, timedelta
+from passlib.context import CryptContext
 
 SECRET_KEY = "mysecretkey"
 ALGORITHM = "HS256"
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def hash_password(password: str):
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str):
+    return pwd_context.verify(plain_password, hashed_password)
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -77,7 +86,7 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
 def register(user: User, db: Session = Depends(get_db)):
     db_user = UserDB(
         username = user.username,
-        password = user.password
+        password = hash_password(user.password)
     )
     db.add(db_user)
     db.commit()
@@ -88,7 +97,7 @@ def register(user: User, db: Session = Depends(get_db)):
 def login(user: User, db: Session = Depends(get_db)):
     db_user = db.query(UserDB).filter(UserDB.username == user.username).first()
 
-    if not db_user or db_user.password != user.password:
+    if not db_user or not verify_password(user.password, db_user.password):
         return {"message": "Invalid credentials"}
     
     # Create token
