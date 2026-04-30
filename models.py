@@ -49,3 +49,13 @@ class UserDB(Base):
 class User(BaseModel):
     username: str
     password: str
+
+# Sale queue
+class SalesQueue(Base):
+    __tablename__ = "sale_queue"
+
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer)
+    qty = Column(Integer)
+    status = Column(String, default="pending") # pending, done
+    created_at = Column(DateTime, default=datetime.utcnow)
