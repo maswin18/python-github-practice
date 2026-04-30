@@ -111,3 +111,19 @@ def login(user: User, db: Session = Depends(get_db)):
     token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
 
     return {"access_token": token}
+
+@app.post("/sync")
+def sync_products(items: list[Product], db: Session = Depends(get_db)):
+    for item in items:
+        existing = db.query(ProductDB).filter(ProductDB.id == item.id).first()
+
+        if existing:
+            existing.name = item.name
+            existing.qty = item.qty
+        else:
+            new_product = ProductDB(**item.dict())
+            db.add(new_product)
+
+    db.commit()
+
+    return {"message": "Sync completed", "count": len(items)}
