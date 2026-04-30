@@ -51,7 +51,7 @@ class User(BaseModel):
     password: str
 
 # Sale queue
-class SalesQueue(Base):
+class SaleQueue(Base):
     __tablename__ = "sale_queue"
 
     id = Column(Integer, primary_key=True, index=True)
