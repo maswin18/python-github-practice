@@ -1,4 +1,5 @@
 import requests
+import time
 
 BASE_URL = "http://127.0.0.1:8000"
 
@@ -8,39 +9,38 @@ login_data = {
     "password": "123456"
 }
 
-login_response = requests.post(f"{BASE_URL}/login", json=login_data)
+def get_token():
+    response = requests.post(f"{BASE_URL}/login", json=login_data)
+    return response.json().get("access_token")
 
-if login_response.status_code != 200:
-    print("Login failed:", login_response.text)
-    exit()
+def sync_job():
+    token = get_token()
 
-token = login_response.json().get("access_token")
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
 
-headers = {
-    "Authorization": f"Bearer{token}"
-}
+    sync_data = [
+        {"id": 1, "name": "Shoes", "qty": 250},
+        {"id": 4, "name": "Bag", "qty": 20}
+    ]
 
-# Step 2: Sync data (simulate external system)
-sync_data = [
-    {"id": 1, "name": "Shoes", "qty": 200},
-    {"id": 3, "name": "Jacket", "qty": 50}
-]
+    sync_response = requests.post(f"{BASE_URL}/sync", json=sync_data, headers=headers)
 
-sync_response = requests.post(f"{BASE_URL}/sync", json=sync_data, headers=headers)
-
-print("Sync result:", sync_response.json())
-
-# Step 3: Verify
-products_response = requests.get(f"{BASE_URL}/products", headers=headers)
-
-if products_response.status_code == 401:
-    print("Token expired, logging in again...")
-
-    login_response = requests.post(f"{BASE_URL}/login", json=login_data)
-    token = login_response.json().get("access_token")
-
-    headers = {"Authorization": f"Bearer {token}"}
+    print("Sync:", sync_response.json())
 
     products_response = requests.get(f"{BASE_URL}/products", headers=headers)
 
-print("Products:", products_response.json())
+    if products_response.status_code == 401:
+        print("Token expired, retrying...")
+        token = get_token()
+        headers["Authorization"] = f"Bearer {token}"
+        products_response = requests.get(f"{BASE_URL}/products", headers=headers)
+
+    print("Products:", products_response.json())
+
+# Run every 10 seconds
+while True:
+    print("\n--- Running sync job ---")
+    sync_job()
+    time.sleep(10)
