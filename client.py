@@ -1,8 +1,9 @@
 import requests
+import threading
 
 BASE_URL = "http://127.0.0.1:8000"
 
-# login
+# Login
 login = requests.post(f"{BASE_URL}/login", json={
     "username": "maswin_fix",
     "password": "123456"
@@ -14,16 +15,20 @@ headers = {
     "Authorization": f"Bearer {token}"
 }
 
-# simulate sale
-sale = requests.post(
-    f"{BASE_URL}/sell",
-    json={"id": 1, "qty": 2},
-    headers=headers
-)
+def make_sale():
+    response = requests.post(
+        f"{BASE_URL}/sell",
+        json={"id": 10, "qty": 2},
+        headers=headers
+    )
+    print(response.json())
 
-print("SALE RESULT:", sale.json())
+# simulate 2 users at same time
+t1 = threading.Thread(target=make_sale)
+t2 = threading.Thread(target=make_sale)
 
-# check products
-products = requests.get(f"{BASE_URL}/products", headers=headers)
+t1.start()
+t2.start()
 
-print("PRODUCTS:", products.json())
+t1.join()
+t2.join()

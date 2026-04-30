@@ -109,21 +109,22 @@ def sell_item(
     db: Session = Depends(get_db),
     user=Depends(verify_token)
 ):
-    product = db.query(ProductDB).filter(ProductDB.id == data["id"]).first()
+    product_id = data["id"]
+    qty = data["qty"]
 
-    if not product:
-        return {"message": "Product not found"}
+    result = db.query(ProductDB).filter(
+        ProductDB.id == product_id,
+        ProductDB.qty >= qty
+    ).update({
+        ProductDB.qty: ProductDB.qty - qty
+    })
 
-    if product.qty < data["qty"]:
+    if result == 0:
         return {"message": "Not enough stock"}
 
-    # Reduce stock
-    product.qty -= data["qty"]
-
-    # Audit log
     log = StockLog(
-        product_id=data["id"],
-        change=-data["qty"],
+        product_id=product_id,
+        change=-qty,
         source="sale",
         reference="order_001",
         note="customer purchase"
@@ -132,10 +133,7 @@ def sell_item(
     db.add(log)
     db.commit()
 
-    return {
-        "message": "Sale successful",
-        "remaining_qty": product.qty
-    }
+    return {"message": "Sale successful"}
 
 # ------------------------
 # LOGS
