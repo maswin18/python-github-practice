@@ -114,6 +114,22 @@ def get_products(
         "data": products
     }
 
+@app.post("/products")
+def add_product(
+    product: Product,
+    db: Session = Depends(get_db),
+    user=Depends(verify_token)
+):
+    db_product = ProductDB(**product.dict())
+    db.add(db_product)
+    db.commit()
+    db.refresh(db_product)
+
+    return {
+        "id": db_product.id,
+        "name": db_product.name,
+        "qty": db_product.qty
+    }
 # ------------------------
 # SELL (EVENT-BASED)
 # ------------------------

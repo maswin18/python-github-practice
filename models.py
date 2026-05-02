@@ -61,3 +61,12 @@ class SaleQueue(Base):
     qty = Column(Integer)
     status = Column(String, default="pending") # pending, done
     created_at = Column(DateTime, default=datetime.utcnow)
+
+# Product summary
+class ProductSummary(Base):
+    __tablename__ = "product_summary"
+
+    id = Column(Integer, primary_key=True, index=True)
+    total_products = Column(Integer)
+    total_qty = Column(Integer)
+    updated_at = Column(DateTime, default=datetime.utcnow)
