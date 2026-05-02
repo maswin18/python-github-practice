@@ -85,22 +85,22 @@ def login(user: User, db: Session = Depends(get_db)):
 # ------------------------
 # PRODUCTS
 # ------------------------
-@app.post("/products")
-def add_product(product: Product, db: Session = Depends(get_db)):
-    db_product = ProductDB(**product.dict())
-    db.add(db_product)
-    db.commit()
-    db.refresh(db_product)
+@app.get("/products")
+def get_products(
+    page: int = 1,
+    limit: int = 10,
+    db: Session = Depends(get_db),
+    user=Depends(verify_token)
+):
+    offset = (page - 1) * limit
+    
+    products = db.query(ProductDB).offset(offset).limit(limit).all()
 
     return {
-        "id": db_product.id,
-        "name": db_product.name,
-        "qty": db_product.qty
+        "page": page,
+        "limit": limit,
+        "data": products
     }
-
-@app.get("/products")
-def get_products(db: Session = Depends(get_db), user=Depends(verify_token)):
-    return db.query(ProductDB).all()
 
 # ------------------------
 # SELL (EVENT-BASED)
