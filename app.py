@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
-from models import Base, ProductDB, Product, UserDB, User, StockLog
+from models import Base, ProductDB, Product, UserDB, User, StockLog, SaleQueue
 from jose import jwt
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
@@ -141,3 +141,61 @@ def sell_item(
 @app.get("/logs")
 def get_logs(db: Session = Depends(get_db)):
     return db.query(StockLog).order_by(StockLog.created_at.desc()).all()
+
+# ------------------------
+# Queue-Sale
+# ------------------------
+@app.post("/queue-sale")
+def queue_sale(
+    data: dict,
+    db: Session = Depends(get_db),
+    user=Depends(verify_token)
+):
+    item = SaleQueue(
+        product_id=data["id"],
+        qty = data["qty"],
+        status="pending"
+    )
+    
+    db.add(item)
+    db.commit()
+
+    return{
+        "message": "Added to queue",
+        "queue_id": item.id
+    }
+
+def process_queue(db: Session):
+    items = db.query(SaleQueue).filter(SaleQueue.status == "pending").all()
+
+    for item in items:
+        result = db.query(ProductDB).filter(
+            ProductDB.id == item.product_id,
+            ProductDB.qty >= item.qty
+        ).update({
+            ProductDB.qty: ProductDB.qty - item.qty
+        })
+
+        if result == 0:
+            item.status = "failed"
+        else:
+            # Log
+            log = StockLog(
+                product_id = item.product_id,
+                change =- item.qty,
+                source = "queue",
+                reference = f"queue_{item.id}",
+                note = "queued sale processed"
+            )
+            db.add(log)
+            item.status = "done"
+
+    db.commit()
+
+@app.post("/process-queue")
+def run_queue(
+    db: Session = Depends(get_db),
+    user = Depends(verify_token)
+):
+    process_queue(db)
+    return {"message": "Queue processed"}
