@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Index
 from database import Base
 from pydantic import BaseModel
 from datetime import datetime
@@ -21,9 +21,11 @@ class ProductDB(Base):
     __tablename__ = "products"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String)
-    qty = Column(Integer)
+    name = Column(String, index=True)
+    qty = Column(Integer, index=True)
 
+# optional (advanced)
+Index("idx_name_qty", ProductDB.name, ProductDB.qty)
 
 # API schema
 class Product(BaseModel):

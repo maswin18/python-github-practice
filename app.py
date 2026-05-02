@@ -89,12 +89,24 @@ def login(user: User, db: Session = Depends(get_db)):
 def get_products(
     page: int = 1,
     limit: int = 10,
+    name: str = None,
+    min_qty: int = None,
     db: Session = Depends(get_db),
     user=Depends(verify_token)
 ):
     offset = (page - 1) * limit
-    
-    products = db.query(ProductDB).offset(offset).limit(limit).all()
+
+    query = db.query(ProductDB)
+
+    # filter by name
+    if name:
+        query = query.filter(ProductDB.name.contains(name))
+
+    # filter by qty
+    if min_qty:
+        query = query.filter(ProductDB.qty >= min_qty)
+
+    products = query.offset(offset).limit(limit).all()
 
     return {
         "page": page,
