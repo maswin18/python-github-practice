@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
-from models import Base, ProductDB, Product, UserDB, User, StockLog, SaleQueue
+from models import Base, ProductDB, Product, UserDB, User, StockLog, SaleQueue, ProductSummary
 from jose import jwt
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
@@ -125,6 +125,8 @@ def add_product(
     db.commit()
     db.refresh(db_product)
 
+    update_summary(db)
+
     return {
         "id": db_product.id,
         "name": db_product.name,
@@ -162,6 +164,8 @@ def sell_item(
 
     db.add(log)
     db.commit()
+
+    update_summary(db)
 
     return {"message": "Sale successful"}
 
@@ -221,6 +225,8 @@ def process_queue(db: Session):
             item.status = "done"
 
     db.commit()
+    
+    update_summary(db)
 
 @app.post("/process-queue")
 def run_queue(
@@ -244,3 +250,28 @@ def background_worker():
 def start_worker():
     thread = threading.Thread(target=background_worker, daemon=True)
     thread.start()
+
+def update_summary(db: Session):
+    total_products = db.query(ProductDB).count()
+    total_qty = db.query(ProductDB).with_entities(ProductDB.qty).all()
+
+    total_qty = sum([q[0] for q in total_qty])
+
+    summary = db.query(ProductSummary).first()
+
+    if summary:
+        summary.total_products = total_products
+        summary.total_qty = total_qty
+        summary.updated_at = datetime.utcnow()
+    else:
+        summary = ProductSummary(
+            total_products=total_products,
+            total_qty=total_qty
+        )
+        db.add(summary)
+
+    db.commit()
+
+@app.get("/summary")
+def get_summary(db: Session = Depends(get_db)):
+    return db.query(ProductSummary).first()
