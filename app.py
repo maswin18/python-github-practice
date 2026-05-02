@@ -6,6 +6,8 @@ from jose import jwt
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 import os
+import threading
+import time
 
 # Config
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret")
@@ -199,3 +201,18 @@ def run_queue(
 ):
     process_queue(db)
     return {"message": "Queue processed"}
+
+def background_worker():
+    while True:
+        db = SessionLocal()
+        try:
+            process_queue(db)
+        finally:
+            db.close()
+
+        time.sleep(5) # run every 5 seconds
+
+@app.on_event("startup")
+def start_worker():
+    thread = threading.Thread(target=background_worker, daemon=True)
+    thread.start()
